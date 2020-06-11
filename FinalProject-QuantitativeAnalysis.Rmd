@@ -1,0 +1,465 @@
+---
+title: "FinalProject-QuantitativeAnalysis"
+output: pdf_document
+---
+
+```{r,message=F}
+library(tidyverse) # data viz
+library(tidytext) # text mining
+library(gridExtra) # for plotting side by side
+library(scales) # for previewing colors
+```
+
+# 1) Load in Data
+```{r,message=F,warning=F}
+all <- read_csv("all_products.csv")
+dryer <- read_csv("hair_dryer.csv")
+paci <- read_csv("pacifier.csv")
+micro <- read_csv("microwave.csv")
+# head(dryer)
+# head(paci)
+# head(micro)
+```
+
+# 2) Preview Columns
+Function to preview columns
+```{r}
+product_summary <- function(df){
+  print(deparse(substitute(df)))
+  cat("marketplace: ", unique(df$marketplace),"\n") 
+  cat("category: ", unique(df$product_category),"\n") 
+  cat("# of titles: ",length(unique(df$product_title)),"\n") 
+  cat("# of ids: ", length(unique(df$product_id)),"\n")
+  cat("# of customers: ",length(unique(df$customer_id)),"\n")
+  cat("# of reviews: ",length(unique(df$review_id)),"\n") 
+  cat("# of parents: ", length(unique(df$product_parent)),"\n")
+  print(summary(df$star_rating))
+  print(summary(df$review_date))
+  cat("\n")
+}
+```
+
+```{r}
+product_summary(dryer)
+product_summary(paci)
+product_summary(micro)
+```
+
+# 3) Look at distributions of star ratings, helpful votes, total votes, vine, verified, and dates
+
+Define custom color set
+```{r}
+cbp <- c("#999999", "#E69F00", "#56B4E9", "#009E73",
+          "#F0E442", "#0072B2", "#D55E00", "#CC79A7")
+show_col(cbp)
+```
+
+
+Star Ratings
+```{r}
+# create summary data for star ratings
+star_all <- all %>% group_by(type) %>% summarise(rating_ct_all = n())
+star_type <- all %>% group_by(type,star_rating) %>% summarise(rating_ct = n())
+star_type<- inner_join(star_all,star_type,by="type")
+star_type <- star_type %>% mutate(rating_p = rating_ct/rating_ct_all)
+# print(star_type)
+rate_hist <- ggplot(star_type,aes(x=star_rating,y=rating_p,fill=type)) + geom_bar(stat="identity",position = "dodge") +
+  ggtitle("Star Rating Distribution for Each Product") + ylab("Proportion") + xlab("Star Rating") + labs(fill="Product") +
+  scale_fill_manual(values=cbp[c(2:4)]) + theme_bw()
+print(rate_hist)
+```
+Microwaves seem to have the worst ratings (highest chance of malfunction?), however it does slightly lead in 3 and 4 star ratings.
+Pacifier has best 5 star ratings, probably since least likely to malfunction. 
+Hairdryer has similar trend as pacifier.
+
+look at helpful ratio
+```{r,warning=F}
+hr1 <- ggplot(all,aes(x=helpful_ratio)) + geom_histogram(binwidth = 0.025,fill=cbp[1]) + 
+  theme(legend.position = "none") + theme_bw() + ggtitle("All Products")
+hr2 <- ggplot(dryer,aes(x=helpful_ratio)) + geom_histogram(binwidth = 0.025,fill=cbp[2]) + 
+  theme(legend.position = "none") + theme_bw() + ggtitle("Hair Dryer")
+hr3 <- ggplot(paci,aes(x=helpful_ratio)) + geom_histogram(binwidth = 0.025,fill=cbp[3]) + 
+  theme(legend.position = "none") + theme_bw() + ggtitle("Pacifier")
+hr4 <- ggplot(micro,aes(x=helpful_ratio)) + geom_histogram(binwidth = 0.025,fill=cbp[4]) + 
+  theme(legend.position = "none") + theme_bw() + ggtitle("Microwave")
+grid.arrange(hr1,hr2,hr3,hr4, ncol=2, top = "Helpful Ratio Distribution")
+```
+
+look at helpful indicator
+```{r}
+h1 <- ggplot(data=subset(all, !is.na(helpful)),aes(x=helpful)) + geom_bar(fill=cbp[1]) + 
+  geom_text(stat='count', aes(label=paste(round(..count../sum(!is.na(all$helpful)) * 100,2),"%")), 
+            hjust=0.4, vjust=1, size = 3,color="white") +
+  theme(legend.position = "none") + theme_bw() + ggtitle("All Products")
+h2 <- ggplot(data=subset(dryer, !is.na(helpful)),aes(x=helpful)) + geom_bar(fill=cbp[2]) + 
+  geom_text(stat='count', aes(label=paste(round(..count../sum(!is.na(dryer$helpful)) * 100,2),"%")), 
+            hjust=0.4, vjust=1, size = 3,color="white") +
+  theme(legend.position = "none") + theme_bw() + ggtitle("Hair Dryer")
+h3 <- ggplot(data=subset(paci, !is.na(helpful)),aes(x=helpful)) + geom_bar(fill=cbp[3]) + 
+  geom_text(stat='count', aes(label=paste(round(..count../sum(!is.na(paci$helpful)) * 100,2),"%")), 
+            hjust=0.4, vjust=1, size = 3,color="white") +
+  theme(legend.position = "none") + theme_bw() + ggtitle("Pacifier")
+h4 <- ggplot(data=subset(micro, !is.na(helpful)),aes(x=helpful)) + geom_bar(fill=cbp[4]) + 
+  geom_text(stat='count', aes(label=paste(round(..count../sum(!is.na(micro$helpful)) * 100,2),"%")), 
+            hjust=0.4, vjust=1, size = 3,color="white") +
+  theme(legend.position = "none") + theme_bw() + ggtitle("Microwave")
+grid.arrange(h1,h2,h3,h4, ncol=2, top = "Percentage of Reviews with Votes that Are Helpful")
+```
+
+look at proportion of reviews that have any votes (total_votes)
+```{r}
+hv1 <- ggplot(all,aes(x=has_votes)) + geom_bar(fill=cbp[1]) + 
+  theme(legend.position = "none") + theme_bw() +
+  geom_text(stat='count', aes(label=paste(round(..count../nrow(all) * 100,2),"%")), 
+            hjust=0.4, vjust=1, size = 3,color="white") +
+  theme(legend.position = "none") + theme_bw() + ggtitle("All Products")
+
+hv2 <- ggplot(dryer,aes(x=has_votes)) + geom_bar(fill=cbp[2]) + 
+  theme(legend.position = "none") + theme_bw() + 
+  geom_text(stat='count', aes(label=paste(round(..count../nrow(dryer) * 100,2),"%")), 
+            hjust=0.4, vjust=1, size = 3,color="white") +
+  theme(legend.position = "none") + theme_bw() + ggtitle("Hair Dryer")
+
+hv3 <- ggplot(paci,aes(x=has_votes)) + geom_bar(fill=cbp[3]) + 
+  theme(legend.position = "none") + theme_bw() +
+  geom_text(stat='count', aes(label=paste(round(..count../nrow(paci) * 100,2),"%")), 
+            hjust=0.4, vjust=1, size = 3,color="white") +
+  theme(legend.position = "none") + theme_bw() + ggtitle("Pacifier")
+
+hv4 <- ggplot(micro,aes(x=has_votes)) + geom_bar(fill=cbp[4]) + 
+  theme(legend.position = "none") + theme_bw() + 
+  geom_text(stat='count', aes(label=paste(round(..count../nrow(micro) * 100,2),"%")), 
+            hjust=0.4, vjust=1, size = 3,color="white") +
+  theme(legend.position = "none") + theme_bw() + ggtitle("Microwave")
+grid.arrange(hv1,hv2,hv3,hv4, ncol=2, top = "Percentage of Reviews with Votes")
+```
+
+
+look at vine, nonvine ratio
+```{r}
+v1 <- ggplot(all,aes(x=vine,fill=vine)) + geom_bar() +
+  scale_fill_manual(values=cbp[c(7,6)]) + theme_bw() + theme(legend.position = "none") + ggtitle("All Products")
+v2 <- ggplot(dryer,aes(x=vine,fill=vine)) + geom_bar() + 
+  scale_fill_manual(values=cbp[c(7,6)]) + theme_bw() + theme(legend.position = "none") + ggtitle("Dryer")
+v3 <- ggplot(paci,aes(x=vine,fill=vine)) + geom_bar() + 
+  scale_fill_manual(values=cbp[c(7,6)]) + theme_bw() + theme(legend.position = "none") + ggtitle("Pacifier")
+v4 <- ggplot(micro,aes(x=vine,fill=vine)) + geom_bar() + 
+  scale_fill_manual(values=cbp[c(7,6)]) + theme_bw() + theme(legend.position = "none") + ggtitle("Microwave")
+grid.arrange(v1,v2,v3,v4, ncol=2)
+```
+For vine reviews, the number of vine reviews is very small. So it isn't likely we can obtain any significant trends from the contents of vine reviews. However, it may still be worthwile to check whether there is any correlation between whether a product has a vine review and how well the product sells/rates.
+
+```{r}
+vp1 <- ggplot(all,aes(x=verified_purchase,fill=verified_purchase)) + geom_bar() + 
+  scale_fill_manual(values=cbp[c(7,6)]) + theme_bw() + theme(legend.position = "none") + ggtitle("All Products")
+vp2 <- ggplot(dryer,aes(x=verified_purchase,fill=verified_purchase)) + geom_bar() + 
+  scale_fill_manual(values=cbp[c(7,6)]) + theme_bw() + theme(legend.position = "none") + ggtitle("Dryer")
+vp3 <- ggplot(paci,aes(x=verified_purchase,fill=verified_purchase)) + geom_bar() + 
+  scale_fill_manual(values=cbp[c(7,6)]) + theme_bw() + theme(legend.position = "none") + ggtitle("Pacifier")
+vp4 <- ggplot(micro,aes(x=verified_purchase,fill=verified_purchase)) + geom_bar() + 
+  scale_fill_manual(values=cbp[c(7,6)]) + theme_bw() + theme(legend.position = "none") + ggtitle("Microwave")
+grid.arrange(vp1,vp2,vp3,vp4, ncol=2)
+```
+
+## Since enough verified reviews, just work with verified reviews
+```{r,message=FALSE}
+all <- read_csv("all_verif.csv")
+dryer <- read_csv("hair_dryer_verif.csv")
+paci <- read_csv("pacifier_verif.csv")
+micro <- read_csv("microwave_verif.csv")
+# head(dryer)
+# head(paci)
+# head(micro)
+```
+
+# 4) Look at relationship of number of reviews and avg star rating for a product_id (there is none)
+```{r}
+all_products <- all %>% group_by(type,product_id) %>% summarise(avg_rating = mean(star_rating),
+                                                                review_count = n(),
+                                                                helpful_prop = mean(helpful),
+                                                                voted_prop = mean(has_votes))
+head(all_products)
+```
+
+```{r}
+rs1 <- ggplot(all_products,aes(x=avg_rating,y=review_count, color=type)) + geom_point() + 
+  scale_color_manual(values=cbp[c(2,3,7)]) + theme_bw() + ggtitle("All Products")
+rs1
+```
+
+# 5) Look at change in stats over time
+
+## Load in monthly and daily data
+```{r, message=FALSE}
+dryer_m <- read_csv("monthly_dryer.csv")
+paci_m <- read_csv("monthly_paci.csv")
+micro_m <- read_csv("monthly_micro.csv")
+dryer_d <- read_csv("daily_dryer.csv")
+paci_d <- read_csv("daily_paci.csv")
+micro_d <- read_csv("daily_micro.csv")
+head(dryer_m)
+```
+
+## 5a) Looking at all products together not that insightful
+```{r}
+dc1 <- ggplot(dryer_m,aes(x=review_month,y=review_count,color=avg_rating)) + geom_point(size=1) +
+  scale_color_gradient(low = "#302100",high = "#E69F00") + ggtitle("Hair Dryer Review Count and Rating by Month")
+dc2 <- ggplot(paci_m,aes(x=review_month,y=review_count,color=avg_rating)) + geom_point(size=1) +
+  scale_color_gradient(low = "#122733",high = "#56B4E9") + ggtitle("Pacifier Review Count and Rating by Month")
+dc3 <- ggplot(micro_m,aes(x=review_month,y=review_count,color=avg_rating)) + geom_point(size=1) +
+  scale_color_gradient(low = "#00261c",high = "#00d49a") + ggtitle("Microwave Review Count and Rating by Month")
+dc1; dc2; dc3
+```
+
+
+
+
+### Look at data for most product_ids with most reviews
+```{r}
+dryer_review_ct <- dryer %>% group_by(product_id) %>% summarise(review_count=n()) %>% arrange(desc(review_count))
+head(dryer_review_ct,30) # filter for at least 100 reviews
+pop_dryer <- dryer %>% group_by(product_id) %>% mutate(review_count=n()) %>% arrange(desc(review_count)) %>% filter(review_count >= 100)
+pop_micro <- micro %>% group_by(product_id) %>% mutate(review_count=n()) %>% arrange(desc(review_count)) %>% filter(review_count >= 20)
+pop_paci <- paci %>% group_by(product_id) %>% mutate(review_count=n()) %>% arrange(desc(review_count)) %>% filter(review_count >= 100)
+# pop_dryer
+```
+
+## 5b) look at helpful 1 and 5 star
+however these do seem to occur at dips in avg rating as expected
+```{r}
+for(product in unique(pop_dryer$product_id)[1:5]){
+  prod_df <- pop_dryer[pop_dryer$product_id == product,] %>% group_by(review_month,product_id) %>% 
+    summarise(review_count=n(), avg_rating=mean(star_rating), 
+              impact_1_prop=mean(impact_star == "helpful 1 star",na.rm=T),
+              impact_5_prop=mean(impact_star == "helpful 5 star",na.rm=T))
+  g <- ggplot(data=prod_df, aes(x=review_month,y=avg_rating)) + geom_point(aes(size=review_count,color=impact_1_prop)) + geom_path() +
+    scale_color_gradient(low = "#7d7d7d",high = "#f76b56",name = "Helpful 1 Star Prop.") + labs(size="Reviews/Month",x="Month", y="Average Rating") +
+    ggtitle(paste("1 Star Review Trends for Hair Dryer",prod_df$product_id)) + 
+    theme_bw() + theme(text = element_text(size=10))
+  plot(g)
+}
+```
+
+Repeating for 5 star reviews, we also see that impactful reviews appear near the "peaks"
+```{r}
+for(product in unique(pop_dryer$product_id)[1:5]){
+  prod_df <- pop_dryer[pop_dryer$product_id == product,] %>% group_by(review_month,product_id) %>% 
+    summarise(review_count=n(), avg_rating=mean(star_rating), 
+              impact_1_prop=mean(impact_star == "helpful 1 star",na.rm=T),
+              impact_5_prop=mean(impact_star == "helpful 5 star",na.rm=T))
+  g <- ggplot(data=prod_df, aes(x=review_month,y=avg_rating)) + geom_point(aes(size=review_count,color=impact_5_prop)) + geom_path() +
+    scale_color_gradient(low = "#7d7d7d",high = "#5a97fa",name = "Helpful 5 Star Prop.") + labs(size="Reviews/Month",x="Month", y="Average Rating") + 
+    ggtitle(paste("5 Star Review Trends for Hair Dryer",prod_df$product_id)) + 
+    theme_bw() + theme(text = element_text(size=10))
+  plot(g)
+}
+```
+
+## 5c) look at review_count vs cumulative rating
+
+```{r}
+cum_rtg_plots <- function(df,col,num,type){
+  for(product in unique(df$product_id)[1:num]){
+    prod_df <- df[df$product_id == product,] %>% group_by(review_month,product_id) %>% 
+      summarise(review_count=n(),avg_star = mean(star_rating)) %>% ungroup() %>%  mutate(cum_star = cummean(avg_star))
+    g <- ggplot(data=prod_df, aes(x=review_month,y=cum_star)) + geom_point(aes(size=review_count),alpha=0.3,color=col) + geom_path() +
+      ggtitle(paste("Cumulative Rating for",type,prod_df$product_id)) + ylab("Cumulative Rating") + xlab("Year") + labs(size="Review Count\n(per Month)") +
+      theme_bw() + theme(text = element_text(size=10))
+    plot(g)
+  }
+}
+```
+
+```{r}
+cum_rtg_plots(pop_dryer,"#E69F00",5,"Hair Dryer")
+cum_rtg_plots(pop_micro,"#009E73",5,"Microwave")
+cum_rtg_plots(pop_paci,"#56B4E9",5,"Pacifier")
+```
+
+# 6) Track number of reviews for given period after each review
+
+## Can use this method to compare dates
+```{r}
+somedays <- dryer$review_date[c(1,20,30,50)]
+somedayslim <- dryer$review_date[c(1,20,30,50)] + 7 # can use addition op + < to compare dates
+somedays
+somedayslim
+somedays < somedayslim[3] & somedays > somedays[3] # checks if dates within 7 days of day 3
+```
+
+## 6a) Look at review count for period after each star rating (boxplot)
+```{r}
+# will count the number of reviews after a review for a given period in days (default 3), delayed by the shipping time (assumed to be 4 days)
+reviews_after <- function(df,period=3,shipping=4){
+  days <- df$review_date 
+  days_lower <- days + shipping
+  days_upper <- days_lower + period
+  reviews_after <- numeric(0)
+  for(i in 1:length(days)){
+    # checks how many reviews followed each review for [period] span after [shipping delay] period
+    reviews_after <- append(reviews_after, sum(days < days_upper[i] & days > days_lower[i])) 
+  }
+  df$reviews_after <- reviews_after
+  df
+}
+```
+
+```{r}
+dryer <- reviews_after(pop_dryer)
+paci <- reviews_after(pop_paci)
+micro <- reviews_after(pop_micro)
+```
+
+```{r}
+dryer_after <- dryer %>% group_by(review_date,product_id) %>% summarise(avg_rating = mean(star_rating),
+                                                              avg_rating_rd = round(mean(star_rating)),
+                                                              reviews_after = mean(reviews_after))
+paci_after <- paci %>% group_by(review_date,product_id) %>% summarise(avg_rating = mean(star_rating),
+                                                            avg_rating_rd = round(mean(star_rating)),
+                                                            reviews_after = mean(reviews_after))
+micro_after <- micro %>% group_by(review_date,product_id) %>% summarise(avg_rating = mean(star_rating),
+                                                              avg_rating_rd = round(mean(star_rating)),
+                                                              reviews_after = mean(reviews_after))
+```
+
+```{r}
+rr1 <- ggplot(dryer_after,aes(x=avg_rating_rd,y=reviews_after,group=avg_rating_rd)) + geom_boxplot(fill=cbp[2]) + 
+  theme_bw() + theme(legend.position = "none") + 
+  xlab("Average Rating per Day") + ylab("Review Count") + 
+  labs(title = "Hair Dryer")
+rr2 <- ggplot(paci_after,aes(x=avg_rating_rd,y=reviews_after,group=avg_rating_rd)) + geom_boxplot(fill=cbp[3]) + 
+  theme_bw() + theme(legend.position = "none") + 
+  xlab("Average Rating per Day") + ylab("Review Count") + 
+  labs(title = "Pacifier")
+rr3 <- ggplot(micro_after,aes(x=avg_rating_rd,y=reviews_after,group=avg_rating_rd)) + geom_boxplot(fill=cbp[4]) + 
+  theme_bw() + theme(legend.position = "none") + 
+  xlab("Average Rating per Day") + ylab("Review Count") + 
+  labs(title = "Microwave")
+
+
+grid.arrange(rr1,rr2,rr3,ncol=2,top = "Review Count For 3 Day Period After (4 Days) Shipping for Each Star Rating", 
+             bottom = "(Note: Each data point is a unique product on a unique day)")
+```
+
+```{r}
+dryer_after$avg_rating_rd <- as.factor(dryer_after$avg_rating_rd)
+paci_after$avg_rating_rd <- as.factor(paci_after$avg_rating_rd)
+micro_after$avg_rating_rd <- as.factor(micro_after$avg_rating_rd)
+# dryer_after2
+da_mod <- lm(reviews_after ~ avg_rating_rd,data = dryer_after)
+pa_mod <- lm(reviews_after ~ avg_rating_rd,data = paci_after)
+ma_mod <- lm(reviews_after ~ avg_rating_rd,data = micro_after)
+cat("\nHair Dryer\n")
+anova(da_mod)
+cat("\nPacifier\n")
+anova(pa_mod)
+cat("\nMicrowave\n")
+anova(ma_mod)
+```
+
+```{r}
+# will count the number of reviews after a review for a given period in days (default 3)
+reviews_after <- function(df,days_after=3){
+  days <- df$review_date
+  days_upper <- df$review_date + days_after
+  reviews_after <- numeric(0)
+  for(i in 1:length(days)){
+    # checks how many reviews followed each review for [day] span
+    reviews_after <- append(reviews_after, sum(days < days_upper[i] & days > days[i])) 
+  }
+  df$reviews_after_3 <- reviews_after
+  df
+}
+```
+
+## 6c) look at avg star rating of reviews after each star rating (does bad rating indicate more bad ratings to come?) boxplot?
+```{r}
+# will look at avg rating of next [next_r] reviews, default 3
+ratings_after <- function(df,next_r=3){
+  
+  df <- df %>% arrange(review_date) # sort so earliest date first
+  avg_rating_after <- numeric(0)
+  
+  for(i in 1:nrow(df)){
+    # find average rating for next [next_r] reviews
+    if(i + next_r <= nrow(df)){
+      rating_after <- mean(df$star_rating[(i+1):(i+next_r)])
+    }
+    else{
+      rating_after <- NaN
+    }
+    avg_rating_after <- append(avg_rating_after, rating_after)
+  }
+  df$avg_rating_after <- avg_rating_after
+  df
+}
+```
+
+
+```{r}
+dryer_after3 <- ratings_after(pop_dryer,1)
+paci_after3 <- ratings_after(pop_paci,1)
+micro_after3 <- ratings_after(pop_micro,1)
+dryer_after3
+```
+
+### 5s lead to more 5s
+```{r}
+raa1 <- ggplot(dryer_after3,aes(x=factor(star_rating),y=avg_rating_after)) + geom_count(color=cbp[2]) + ggtitle("Hair Dryer") +
+  labs(size="# of Reviews",x="Prior Rating",y="Subsequent Rating") + theme_bw()
+raa2 <- ggplot(paci_after3,aes(x=factor(star_rating),y=avg_rating_after)) + geom_count(color=cbp[3]) + ggtitle("Pacifier") + 
+   labs(size="# of Reviews",x="Prior Rating",y="Subsequent Rating") + theme_bw()
+raa3 <- ggplot(micro_after3,aes(x=factor(star_rating),y=avg_rating_after)) + geom_count(color=cbp[4]) + ggtitle("Microwave") + 
+   labs(size="# of Reviews",x="Prior Rating",y="Subsequent Rating") + theme_bw()
+
+grid.arrange(raa1,raa2,raa3,ncol=2,top = "Does Prior Rating affect Subsequent Rating?")
+```
+
+## [NOT USED]
+```{r}
+# ggplot(dryer_after3,aes(x=vine,y=avg_rating_after)) + geom_count(color=cbp[2]) + ggtitle("Hair Dryer")
+  # labs(size="# of Reviews",x="Rating",y="Subsequent Rating") + theme_bw()
+```
+
+
+## [NOT USED]
+```{r}
+reviews_after2 <- function(df,num,type){
+  # glist <- vector(mode = "list", length = num)
+  i <- 1
+  for(product in unique(df$product_id)[1:num]){
+    prod_df <- df[df$product_id == product,]
+    g <- ggplot(prod_df,aes(x=impactfuls,y=reviews_after,fill=impactfuls)) + geom_boxplot() +
+      scale_fill_manual(values=cbp[c(7,6)]) + theme_bw() + theme(legend.position = "none") + 
+      xlab("Helpful Review that Day") + ylab("Review Count") + 
+      labs(title = paste("Review Count With vs. Without Helpful Reviews for",type,prod_df$product_id[1]),
+                  caption = "(Note: review count is for 3 days following initial review)")
+    i <- i + 1
+    plot(g)
+  }
+  # nCol <- floor(sqrt(num))
+  # do.call("grid.arrange", c(glist, ncol=nCol))
+}
+```
+
+## [NOT USED]
+```{r}
+ra1 <- ggplot(dryer_after,aes(x=impactfuls,y=reviews_after,fill=impactfuls)) + geom_boxplot() +
+  scale_fill_manual(values=cbp[c(7,6)]) + theme_bw() + theme(legend.position = "none") + 
+  xlab("Helpful Review that Day") + ylab("Review Count") + 
+  labs(title = "Review Count Following Days With or Without Helpful Reviews (Hair Dryers)",
+              caption = "(Note: review count is for 3 days following initial review)")
+ra2 <- ggplot(paci_after,aes(x=impactfuls,y=reviews_after,fill=impactfuls)) + geom_boxplot() +
+  scale_fill_manual(values=cbp[c(7,6)]) + theme_bw() + theme(legend.position = "none") + 
+  xlab("Helpful Review that Day") + ylab("Review Count") + 
+  labs(title = "Review Count Following Days With or Without Helpful Reviews (Pacifiers)",
+              caption = "(Note: review count is for 3 days following initial review)")
+ra3 <- ggplot(micro_after,aes(x=impactfuls,y=reviews_after,fill=impactfuls)) + geom_boxplot() +
+  scale_fill_manual(values=cbp[c(7,6)]) + theme_bw() + theme(legend.position = "none") + 
+  xlab("Helpful Review that Day") + ylab("Review Count") + 
+  labs(title = "Review Count Following Days With or Without Helpful Reviews (Microwaves)",
+              caption = "(Note: review count is for 3 days following initial review)")
+
+# ra1; ra2; ra3
+```
+
