@@ -5,7 +5,8 @@ Our group's solution for the MCM 2020 Problem C, A Wealth of Data.
 * [FinalProject-DataWrangling.Rmd](https://github.com/tylerwu2222/MCM-2020-Problem-C-M42-Final-Project-/blob/master/FinalProject-DataWrangling.Rmd) Used to create the variables `helpful_ratio`, `helpful`, `impact_pos`, `impact_neg`, `cum_star_rating`, `impact star`
 * [FinalProject-TextMining.Rmd](https://github.com/tylerwu2222/MCM-2020-Problem-C-M42-Final-Project-/blob/master/FinalProject-TextMining.Rmd) Used to create the the top words bar chart for each of our products.
 * [text-mining.Rmd](text-mining.Rmd) Used to create word clouds
-* [Untitled.Rmd](https://github.com/tylerwu2222/MCM-2020-Problem-C-M42-Final-Project-/blob/master/Untitled.Rmd) used to create sentiment scores
+* [Untitled.Rmd](https://github.com/tylerwu2222/MCM-2020-Problem-C-M42-Final-Project-/blob/master/Untitled.Rmd) Used to create sentiment scores
+* [BarryQi_Math42FinalProj.Rmd](https://github.com/tylerwu2222/MCM-2020-Problem-C-M42-Final-Project-/blob/master/BarryQi_Math42FinalProj.Rmd) Used to create various quantitative graphs in our report
 
 ## Datasets
 * [all_products.csv](https://github.com/tylerwu2222/MCM-2020-Problem-C-M42-Final-Project-/blob/master/all_products.csv) Includes all products
