@@ -1,0 +1,376 @@
+---
+title: "Math 42 Final"
+author: "Barry Qi"
+date: "5/26/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Hair Dryer
+
+```{r}
+# Loading Data
+hair_dryer <- read.csv("hair_dryer.csv")
+hair_dryer_verif <- read.csv("hair_dryer_verif.csv")
+hair_dryer_vine <- read.csv("hair_dryer_vine.csv")
+```
+
+## Rating versus Number of Reviews
+
+### Collecting the necessary data
+```{r}
+hair_total_rate <- tapply(hair_dryer[, "star_rating"], hair_dryer[, "product_title"], mean)
+hair_total_freq <- tapply(hair_dryer[, "star_rating"], hair_dryer[, "product_title"], length)
+
+hair_verif_rate <- tapply(hair_dryer_verif[, "star_rating"], hair_dryer_verif[, "product_title"], mean)
+hair_verif_freq <- tapply(hair_dryer_verif[, "star_rating"], hair_dryer_verif[, "product_title"], length)
+
+hair_vine_rate <- tapply(hair_dryer_vine[, "star_rating"], hair_dryer_vine[, "product_title"], mean)
+hair_vine_freq <- tapply(hair_dryer_vine[, "star_rating"], hair_dryer_vine[, "product_title"], length)
+```
+
+### Plots of Ratings versus Number of Reviews
+
+```{r}
+plot(hair_total_rate, hair_total_freq,
+     main = "Ratings versus Number of Reviews for All Reviews (Hair Dryer)",
+     xlab = "Rating",
+     ylab = "Number of Reviews")
+```
+
+```{r}
+plot(hair_verif_rate, hair_verif_freq,
+     main = "Ratings versus Number of Reviews for Verified Reviews",
+     xlab = "Rating",
+     ylab = "Number of Reviews")
+```
+
+```{r}
+plot(hair_vine_rate, hair_vine_freq,
+     main = "Ratings versus Number of Reviews for Vine Reviews",
+     xlab = "Rating",
+     ylab = "Number of Reviews",
+     xlim = c(1, 5))
+```
+
+### Calculating R-Squared Values
+
+```{r}
+hair_total_rsq <- cor(hair_total_rate, hair_total_freq) ^ 2
+hair_verif_rsq <- cor(hair_verif_rate, hair_verif_freq) ^ 2
+hair_vine_rsq <- cor(hair_vine_rate, hair_vine_freq) ^ 2
+
+hair_total_rsq
+hair_verif_rsq
+hair_vine_rsq
+```
+R-squared values are all relatively low and indicate very little correlation.
+
+OVERALL:
+Only noticeable trend: All products with low ratings also have a low number of reviews. This may indicate that the first reviews are particularly impactful - if a product has low and few reviews, it may be that people do not purchase the item, therefore keeping the number of reviews low.
+
+### Star Rating versus Helpful Votes
+```{r}
+plot(hair_dryer[, "star_rating"], hair_dryer[, "helpful_votes"],
+     xlab = "Rating",
+     ylab = "Number of Helpful Votes",
+     main = "Rating versus Number of Helpful Votes")
+```
+
+```{r}
+hair_rating_help_rsq <- cor(hair_dryer[, "star_rating"], hair_dryer[, "helpful_votes"]) ^ 2
+hair_rating_help_rsq
+```
+No clear relationship between average rating and the number of helpful votes.
+
+## Star Rating versus Verified Purchaser
+
+```{r}
+hair_verif <- tapply(hair_dryer[, "star_rating"], hair_dryer[, "verified_purchase"], mean)
+barplot(hair_verif,
+        col = c("darkred", "darkgreen"),
+        xlab = "Verified Purchaser",
+        ylab = "Average Rating",
+        ylim = c(0, 5),
+        main = "Average Rating by Verified Purchaser (Hair Dryer)")
+```
+
+```{r}
+hair_y_verif_indices <- which(hair_dryer[, "verified_purchase"] == "Y")
+hair_n_verif_indices <- which(hair_dryer[, "verified_purchase"] == "N")
+t.test(hair_dryer[, "star_rating"][hair_y_verif_indices], hair_dryer[, "star_rating"][hair_n_verif_indices])
+```
+There is a statistically significant difference that verified purchaser reviewers tend to give higher reviews.
+
+# Star Rating versus Vine
+
+```{r}
+hair_vine <- tapply(hair_dryer[, "star_rating"], hair_dryer[, "vine"], mean)
+barplot(hair_vine,
+        col = c("darkred", "darkgreen"),
+        xlab = "Vine Purchaser",
+        ylab = "Average Rating",
+        ylim = c(0, 5),
+        main = "Average Rating by Vine Purchaser Status (Hair Dryer)")
+```
+
+```{r}
+hair_y_vine_indices <- which(hair_dryer[, "vine"] == "Y")
+hair_n_vine_indices <- which(hair_dryer[, "vine"] == "N")
+t.test(hair_dryer[, "star_rating"][hair_y_vine_indices], hair_dryer[, "star_rating"][hair_n_vine_indices])
+```
+There is a statistically significant difference that Vine reviewers tend to give higher reviews.
+
+# Microwave
+
+```{r}
+# Loading Data
+micro <- read.csv("microwave.csv")
+micro_verif <- read.csv("microwave_verif.csv")
+micro_vine <- read.csv("microwave_vine.csv")
+```
+
+```{r}
+micro[, "verified_purchase"][which(micro[, "verified_purchase"] == "n")] <- "N"
+micro[, "verified_purchase"][which(micro[, "verified_purchase"] == "y")] <- "Y"
+
+micro[, "vine"][which(micro[, "vine"] == "n")] <- "N"
+micro[, "vine"][which(micro[, "vine"] == "y")] <- "Y"
+```
+
+## Rating versus Number of Reviews
+
+### Collecting the necessary data
+```{r}
+micro_total_rate <- tapply(micro[, "star_rating"], micro[, "product_title"], mean)
+micro_total_freq <- tapply(micro[, "star_rating"], micro[, "product_title"], length)
+
+micro_verif_rate <- tapply(micro_verif[, "star_rating"], micro_verif[, "product_title"], mean)
+micro_verif_freq <- tapply(micro_verif[, "star_rating"], micro_verif[, "product_title"], length)
+
+micro_vine_rate <- tapply(micro_vine[, "star_rating"], micro_vine[, "product_title"], mean)
+micro_vine_freq <- tapply(micro_vine[, "star_rating"], micro_vine[, "product_title"], length)
+```
+
+### Plots of Ratings versus Number of Reviews
+
+```{r}
+plot(micro_total_rate, micro_total_freq,
+     main = "Ratings versus Number of Reviews for All Reviews (Microwave)",
+     xlab = "Rating",
+     ylab = "Number of Reviews")
+```
+
+```{r}
+plot(micro_verif_rate, micro_verif_freq,
+     main = "Ratings versus Number of Reviews for Verified Reviews",
+     xlab = "Rating",
+     ylab = "Number of Reviews")
+```
+
+```{r}
+plot(micro_vine_rate, micro_vine_freq,
+     main = "Ratings versus Number of Reviews for Vine Reviews",
+     xlab = "Rating",
+     ylab = "Number of Reviews",
+     xlim = c(1, 5))
+```
+
+### Calculating R-Squared Values
+
+```{r}
+micro_total_rsq <- cor(micro_total_rate, micro_total_freq) ^ 2
+micro_verif_rsq <- cor(micro_verif_rate, micro_verif_freq) ^ 2
+micro_vine_rsq <- cor(micro_vine_rate, micro_vine_freq) ^ 2
+
+micro_total_rsq
+micro_verif_rsq
+micro_vine_rsq
+```
+
+### Star Rating versus Helpful Votes
+```{r}
+plot(micro[, "star_rating"], micro[, "helpful_votes"],
+     xlab = "Rating",
+     ylab = "Number of Helpful Votes",
+     main = "Rating versus Number of Helpful Votes")
+```
+
+```{r}
+micro_rating_help_rsq <- cor(micro[, "star_rating"], micro[, "helpful_votes"]) ^ 2
+micro_rating_help_rsq
+```
+
+## Star Rating versus Verified Purchaser
+
+```{r}
+micro_verif <- tapply(micro[, "star_rating"], micro[, "verified_purchase"], mean)
+
+ratings <- integer(0)
+for (i in 1:length(micro[, "verified_purchase"])) {
+    if (micro[, "verified_purchase"][i] == "N") {
+      ratings[length(ratings) + 1] <- micro[, "star_rating"][i]
+    }
+  micro_verif[2] <- mean(ratings, na.rm = TRUE)
+}
+
+barplot(height = c(micro_verif[2], micro_verif[4]),
+        col = c("darkred", "darkgreen"),
+        xlab = "Verified Purchaser",
+        ylab = "Average Rating",
+        ylim = c(0, 5),
+        main = "Average Rating by Verified Purchaser (Microwaves)")
+```
+
+```{r}
+micro_y_verif_indices <- which(micro[, "verified_purchase"] == "Y")
+micro_n_verif_indices <- which(micro[, "verified_purchase"] == "N")
+t.test(micro[, "star_rating"][micro_y_verif_indices], micro[, "star_rating"][micro_n_verif_indices])
+```
+
+# Star Rating versus Vine
+
+```{r}
+micro_vine <- tapply(micro[, "star_rating"], micro[, "vine"], mean)
+
+barplot(height = c(micro_vine[2], micro_vine[3]),
+        col = c("darkred", "darkgreen"),
+        xlab = "Vine Purchaser",
+        ylab = "Average Rating",
+        ylim = c(0, 5),
+        main = "Average Rating by Vine Purchaser Status (Microwave)")
+```
+
+```{r}
+micro_y_vine_indices <- which(micro[, "vine", ] == "Y")
+micro_n_vine_indices <- which(micro[, "vine", ] == "N")
+t.test(micro[, "star_rating"][micro_y_vine_indices], micro[, "star_rating"][micro_n_vine_indices])
+```
+
+# Pacifier
+
+```{r}
+# Loading Data
+pacifier <- read.csv("pacifier.csv")
+pacifier_verif <- read.csv("pacifier_verif.csv")
+pacifier_vine <- read.csv("pacifier_vine.csv")
+```
+
+```{r}
+pacifier[, "verified_purchase"][which(pacifier[, "verified_purchase"] == "n")] <- "N"
+pacifier[, "verified_purchase"][which(pacifier[, "verified_purchase"] == "y")] <- "Y"
+
+pacifier[, "vine"][which(pacifier[, "vine"] == "n")] <- "N"
+pacifier[, "vine"][which(pacifier[, "vine"] == "y")] <- "Y"
+```
+
+## Rating versus Number of Reviews
+
+### Collecting the necessary data
+```{r}
+pacifier_total_rate <- tapply(pacifier[, "star_rating"], pacifier[, "product_title"], mean)
+pacifier_total_freq <- tapply(pacifier[, "star_rating"], pacifier[, "product_title"], length)
+
+pacifier_verif_rate <- tapply(pacifier_verif[, "star_rating"], pacifier_verif[, "product_title"], mean)
+pacifier_verif_freq <- tapply(pacifier_verif[, "star_rating"], pacifier_verif[, "product_title"], length)
+
+pacifier_vine_rate <- tapply(pacifier_vine[, "star_rating"], pacifier_vine[, "product_title"], mean)
+pacifier_vine_freq <- tapply(pacifier_vine[, "star_rating"], pacifier_vine[, "product_title"], length)
+```
+
+### Plots of Ratings versus Number of Reviews
+
+```{r}
+plot(pacifier_total_rate, pacifier_total_freq,
+     main = "Ratings versus Number of Reviews for All Reviews (Pacifier)",
+     xlab = "Rating",
+     ylab = "Number of Reviews")
+```
+
+```{r}
+plot(pacifier_verif_rate, pacifier_verif_freq,
+     main = "Ratings versus Number of Reviews for Verified Reviews",
+     xlab = "Rating",
+     ylab = "Number of Reviews")
+```
+
+```{r}
+plot(pacifier_vine_rate, pacifier_vine_freq,
+     main = "Ratings versus Number of Reviews for Vine Reviews",
+     xlab = "Rating",
+     ylab = "Number of Reviews")
+```
+
+### Calculating R-Squared Values
+
+```{r}
+pacifier_total_rsq <- cor(pacifier_total_rate, pacifier_total_freq) ^ 2
+pacifier_verif_rsq <- cor(pacifier_verif_rate, pacifier_verif_freq) ^ 2
+pacifier_vine_rsq <- cor(pacifier_vine_rate, pacifier_vine_freq) ^ 2
+
+pacifier_total_rsq
+pacifier_verif_rsq
+pacifier_vine_rsq
+```
+
+### Star Rating versus Helpful Votes
+```{r}
+plot(pacifier[, "star_rating"], pacifier[, "helpful_votes"],
+     xlab = "Rating",
+     ylab = "Number of Helpful Votes",
+     main = "Rating versus Number of Helpful Votes")
+```
+
+```{r}
+pacifier_rating_help_rsq <- cor(pacifier[, "star_rating"], pacifier[, "helpful_votes"]) ^ 2
+pacifier_rating_help_rsq
+```
+
+## Star Rating versus Verified Purchaser
+
+```{r}
+pacifier_verif <- tapply(pacifier[, "star_rating"], pacifier[, "verified_purchase"], mean)
+
+ratings <- integer(0)
+for (i in 1:length(pacifier[, "verified_purchase"])) {
+    if (pacifier[, "verified_purchase"][i] == "N") {
+      ratings[length(ratings) + 1] <- pacifier[, "star_rating"][i]
+    }
+  pacifier_verif[2] <- mean(ratings, na.rm = TRUE)
+}
+
+barplot(height = c(pacifier_verif[2], pacifier_verif[4]),
+        col = c("darkred", "darkgreen"),
+        xlab = "Verified Purchaser",
+        ylab = "Average Rating",
+        ylim = c(0, 5),
+        main = "Average Rating by Verified Purchaser (Pacifier)")
+```
+
+```{r}
+pacifier_y_verif_indices <- which(pacifier[, "verified_purchase"] == "Y")
+pacifier_n_verif_indices <- which(pacifier[, "verified_purchase"] == "N")
+t.test(pacifier[, "star_rating"][pacifier_y_verif_indices], pacifier[, "star_rating"][pacifier_n_verif_indices])
+```
+
+# Star Rating versus Vine
+
+```{r}
+pacifier_vine <- tapply(pacifier[, "star_rating"], pacifier[, "vine"], mean)
+
+barplot(height = c(pacifier_vine[2], pacifier_vine[4]),
+        col = c("darkred", "darkgreen"),
+        xlab = "Vine Purchaser",
+        ylab = "Average Rating",
+        ylim = c(0, 5),
+        main = "Average Rating by Vine Purchaser Status (Pacifier)")
+```
+
+```{r}
+pacifier_y_vine_indices <- which(pacifier[, "vine"] == "Y")
+pacifier_n_vine_indices <- which(pacifier[, "vine"] == "N")
+t.test(pacifier[, "star_rating"][pacifier_y_vine_indices], pacifier[, "star_rating"][pacifier_n_vine_indices])
+```
