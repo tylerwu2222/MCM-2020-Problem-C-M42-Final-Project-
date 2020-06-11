@@ -1,0 +1,62 @@
+---
+title: "internship"
+author: "Qin Hu"
+date: "6/6/2020"
+output: html_document
+---
+
+```{r}
+library(readr)
+library(dplyr)
+library(readr)
+library(tidyr)
+library(effects)
+library(stringr)
+library(ggplot2)
+library(RColorBrewer)
+library(readxl)
+data <- read_excel("ANZ synthesised transaction dataset.xlsx")
+```
+
+```{r}
+head(data)
+summary(data)
+levels(data$gender)
+summarise_all(data, funs(mean), na.rm=TRUE)
+```
+#what is the average transaction amount?
+```{r}
+mean(data$amount)
+```
+
+#How many transactions do customers make each month, on average?
+```{r}
+df_1<-data %>% count(date)
+
+data$date<- as.Date(data$date)
+data$Month <- months(data$date)
+data$Year <- format(data$date,format="%y")
+
+
+my_group<-data %>% group_by(Month) 
+summarize(my_group, Value = n(), average=(n()/30))
+
+ggplot(data, aes(x = status, fill = Month)) + 
+  geom_bar(position = "dodge")
+
+ggplot(data,aes(x=gender))+geom_bar()
+
+```
+#numerical data
+```{r}
+ggplot(data,aes(x=age))+geom_histogram(binwidth = 50)
+
+ggplot(data, aes(x = age, y = balance)) + 
+  geom_boxplot()
+
+ggplot(data, aes(x = Month, y = amount)) +
+  geom_boxplot()
+
+
+```
+

@@ -1,0 +1,156 @@
+---
+title: "Untitled"
+author: "Qin Hu"
+date: "5/26/2020"
+output: pdf_document
+---
+
+```{r}
+library(readr)
+library(dplyr)
+library(readr)
+library(tidyr)
+library(effects)
+library(stringr)
+library(ggplot2)
+library(factoextra)
+library(stargazer)
+library(tm) # for text mining 
+library(SnowballC) # for text stemming 
+library(wordcloud) # word-cloud generator 
+library(RColorBrewer) # color palettes
+hair<- read_csv("hair_dryer_verif.csv")
+micro<-read_csv("microwave_verif.csv")
+pacifier<-read_csv("pacifier_verif.csv")
+```
+
+#Hair-Dryer Case
+
+##1.Descriptive Statistics
+```{r}
+ggplot(hair,aes(star_rating))+geom_bar(aes(fill=star_rating))+scale_fill_brewer(palette = "Blues")
+
+ggplot(hair,aes(helpful_votes))+geom_histogram()
+
+```
+
+
+
+```{r}
+review_hair = Corpus(VectorSource(hair$review_headline))
+
+review_hair = tm_map(review_hair, content_transformer(tolower))
+review_hair = tm_map(review_hair, removeNumbers)
+review_hair = tm_map(review_hair, removePunctuation)
+review_hair= tm_map(review_hair, removeWords, c("the", "and", stopwords("english")))
+review_hair=  tm_map(review_hair, stripWhitespace)
+
+review_dtm <- DocumentTermMatrix(review_hair)
+review_dtm
+
+inspect(review_dtm[500:505, 500:505])
+review_dtm = removeSparseTerms(review_dtm, 0.99)
+review_dtm
+inspect(review_dtm[1,1:20])
+findFreqTerms(review_dtm, 1000)
+
+freq = data.frame(sort(colSums(as.matrix(review_dtm)), decreasing=TRUE))
+head(freq,20)
+wordcloud(rownames(freq), freq[,1], max.words=50, colors=brewer.pal(1, "Dark2"))
+
+```
+
+#Microwave 
+```{r}
+ggplot(micro,aes(star_rating))+geom_bar()
+
+ggplot(micro,aes(helpful_votes))+geom_histogram()
+```
+
+```{r}
+
+review_micro = Corpus(VectorSource(micro$review_headline))
+review_micro = tm_map(review_micro, content_transformer(tolower))
+review_micro = tm_map(review_micro, removeNumbers)
+review_micro = tm_map(review_micro, removePunctuation)
+review_micro= tm_map(review_micro, removeWords, c("the", "and"))
+review_micro=  tm_map(review_micro, stripWhitespace)
+
+inspect(review_micro[1])
+
+review_dtm_2 <- DocumentTermMatrix(review_micro)
+#review_dtm_2
+
+inspect(review_dtm_2[500:505, 500:505])
+review_dtm_2 = removeSparseTerms(review_dtm_2, 0.99)
+review_dtm_2
+inspect(review_dtm_2[1,1:20])
+findFreqTerms(review_dtm_2, 1000)
+
+freq_2= data.frame(sort(colSums(as.matrix(review_dtm_2)), decreasing=TRUE))
+head(freq_2,20)
+wordcloud(rownames(freq_2), freq_2[,1], max.words=50, colors=brewer.pal(1, "Dark2"))
+```
+
+
+#Pacifier
+
+```{r}
+ggplot(pacifier,aes(star_rating))+geom_bar()
+
+ggplot(pacifier,aes(helpful_votes))+geom_histogram()
+```
+
+```{r}
+pacifier<-read_csv("pacifier_verif.csv")
+review_corpus = Corpus(VectorSource(pacifier$review_headline))
+review_corpus = tm_map(review_corpus, content_transformer(tolower))
+review_corpus = tm_map(review_corpus, removeNumbers)
+review_corpus = tm_map(review_corpus, removePunctuation)
+review_corpus = tm_map(review_corpus, removeWords, c("the", "and", stopwords("english")))
+review_corpus =  tm_map(review_corpus, stripWhitespace)
+
+review_dtm_3<- DocumentTermMatrix(review_corpus)
+review_dtm_3
+
+inspect(review_dtm_3[500:505, 500:505])
+review_dtm_3= removeSparseTerms(review_dtm_3, 0.99)
+review_dtm_3
+inspect(review_dtm_3[1,1:20])
+findFreqTerms(review_dtm_3, 1000)
+
+freq_3= data.frame(sort(colSums(as.matrix(review_dtm_3)), decreasing=TRUE))
+head(freq_3,20)
+wordcloud(rownames(freq_3), freq_3[,1], max.words=50, colors=brewer.pal(1, "Dark2"))
+```
+
+
+```{r}
+library(tidyverse)
+library(tidytext)
+library(glue)
+library(stringr)
+
+fileName <- glue("../input/", pacifier[13], sep = "")
+# get rid of any sneaky trailing spaces
+fileName <- trimws(fileName)
+
+# read in the new file
+fileText <- glue(read_file(fileName))
+# remove any dollar signs (they're special characters in R)
+fileText <- gsub("\\$", "", fileText) 
+
+# tokenize
+tokens <- data_frame(text = fileText) %>% unnest_tokens(word, text)
+
+tokens %>%
+  inner_join(get_sentiments("bing")) %>% # pull out only sentiment words
+  count(sentiment) %>% # count the # of positive & negative words
+  spread(sentiment, n, fill = 0) %>% # made data wide rather than narrow
+  mutate(sentiment = positive - negative) # # of positive words - # of negative owrds
+
+```
+
+
+
+
